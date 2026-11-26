@@ -3,21 +3,23 @@
 # All commands run from the project root.
 #
 # Usage:
-#   make up           — Start the full Docker stack
-#   make down         — Stop and remove containers (keep volumes)
-#   make destroy      — Stop and remove containers AND volumes
-#   make logs         — Tail logs for all services
-#   make ps           — Show running containers
-#   make kafka-topics — List all Kafka topics
-#   make produce      — Run all three CSV producers (requires .env)
-#   make verify       — Run the Kafka consumer verification tool
-#   make install      — Install Python dependencies locally
+#   make up              — Start the full Docker stack
+#   make down            — Stop and remove containers (keep volumes)
+#   make destroy         — Stop and remove containers AND volumes
+#   make logs            — Tail logs for all services
+#   make ps              — Show running containers
+#   make kafka-topics    — List all Kafka topics
+#   make produce         — Run all three CSV producers
+#   make verify          — Run the Kafka consumer verification tool
+#   make stream          — Run all three Spark streaming jobs locally
+#   make stream-submit   — Submit all streaming jobs via spark-submit (Docker)
+#   make install         — Install all Python dependencies locally
 # =============================================================================
 
 COMPOSE = docker compose -f docker/docker-compose.yml
 PYTHON  = python
 
-.PHONY: up down destroy logs ps kafka-topics produce verify install
+.PHONY: up down destroy logs ps kafka-topics produce verify stream stream-submit install
 
 up:
 	$(COMPOSE) up -d --build
@@ -53,4 +55,39 @@ verify:
 
 install:
 	pip install -r data-ingestion/requirements.txt
+	pip install -r streaming/requirements.txt
 	@echo "Dependencies installed."
+
+stream:
+	$(PYTHON) streaming/run_streaming.py
+
+stream-submit:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/streaming/submit_jobs.sh all
+
+stream-stock:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/streaming/submit_jobs.sh stock_aggregator
+
+stream-alerts:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/streaming/submit_jobs.sh threshold_detector
+
+stream-shipments:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/streaming/submit_jobs.sh shipment_monitor
+
+# ── Batch ─────────────────────────────────────────────────────────────────────
+batch-load:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/batch/submit_batch_jobs.sh load_reference --mode full
+
+batch-snapshot:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/batch/submit_batch_jobs.sh daily_snapshot
+
+batch-overstock:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/batch/submit_batch_jobs.sh overstock
+
+batch-supplier:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/batch/submit_batch_jobs.sh supplier_perf
+
+batch-turnover:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/batch/submit_batch_jobs.sh turnover
+
+batch-all-daily:
+	docker exec -it inventory_spark_master bash /opt/spark-apps/batch/submit_batch_jobs.sh all_daily
