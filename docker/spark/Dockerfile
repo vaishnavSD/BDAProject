@@ -1,10 +1,10 @@
 # =============================================================================
 # Spark image for Smart Inventory System
-# Base: bitnami/spark 3.5 (includes Hadoop 3, Python 3.11)
+# Base: apache/spark 3.5.1 (includes Hadoop 3, Python 3)
 # Adds: PostgreSQL JDBC driver, kafka-python, psycopg2 for PySpark jobs
 # =============================================================================
 
-FROM bitnami/spark:3.5.1
+FROM apache/spark:3.5.1
 
 USER root
 
@@ -12,18 +12,21 @@ USER root
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # ── PostgreSQL JDBC driver (required by Spark JDBC write) ───────────────────
 RUN wget -q https://jdbc.postgresql.org/download/postgresql-42.7.3.jar \
-    -O /opt/bitnami/spark/jars/postgresql-42.7.3.jar
-
-# ── Kafka connector JAR (Structured Streaming kafka source) ─────────────────
-# spark-sql-kafka package; pulled at runtime via --packages in submit command.
-# Listed here for documentation; not bundled to keep image lean.
+    -O /opt/spark/jars/postgresql-42.7.3.jar
 
 # ── Python dependencies for PySpark jobs ────────────────────────────────────
 COPY requirements.txt /tmp/spark-requirements.txt
-RUN pip install --no-cache-dir -r /tmp/spark-requirements.txt
+RUN pip3 install --no-cache-dir -r /tmp/spark-requirements.txt
 
-USER 1001
+# ── Entrypoint script to start master or worker ─────────────────────────────
+COPY entrypoint.sh /opt/spark/entrypoint.sh
+RUN chmod +x /opt/spark/entrypoint.sh
+
+USER spark
+
+ENTRYPOINT ["/opt/spark/entrypoint.sh"]

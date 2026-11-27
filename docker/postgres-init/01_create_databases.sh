@@ -15,3 +15,20 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
 
     \echo 'Databases and users created.'
 EOSQL
+
+# PostgreSQL 15+ revoked CREATE on the public schema from PUBLIC by default.
+# Grant it explicitly so the inventory user can create tables.
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname smart_inventory <<-EOSQL
+    GRANT CREATE ON SCHEMA public TO inventory;
+    GRANT USAGE  ON SCHEMA public TO inventory;
+    ALTER DATABASE smart_inventory OWNER TO inventory;
+    \echo 'Schema permissions granted to inventory user.'
+EOSQL
+
+# Same for airflow_db
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname airflow_db <<-EOSQL
+    GRANT CREATE ON SCHEMA public TO airflow;
+    GRANT USAGE  ON SCHEMA public TO airflow;
+    ALTER DATABASE airflow_db OWNER TO airflow;
+    \echo 'Schema permissions granted to airflow user.'
+EOSQL
