@@ -29,6 +29,9 @@ up:
 	@echo "  Spark Master   : http://localhost:8081"
 	@echo "  Spark Worker   : http://localhost:8082"
 	@echo "  Airflow        : http://localhost:8085  (admin/admin)"
+	@echo "  FastAPI        : http://localhost:8000"
+	@echo "  API Docs       : http://localhost:8000/docs"
+	@echo "  Dashboard      : http://localhost:3000"
 	@echo "  PostgreSQL     : localhost:5432"
 
 down:
@@ -91,3 +94,23 @@ batch-turnover:
 
 batch-all-daily:
 	docker exec -it inventory_spark_master bash /opt/spark-apps/batch/submit_batch_jobs.sh all_daily
+
+# ── API ───────────────────────────────────────────────────────────────────────
+api-dev:
+	cd api && uvicorn api.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+api-test:
+	pytest api/tests/ -v
+
+api-logs:
+	$(COMPOSE) logs -f api
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+dashboard-dev:
+	cd dashboard && npm start
+
+dashboard-build:
+	cd dashboard && npm run build
+
+dashboard-install:
+	cd dashboard && npm install --legacy-peer-deps

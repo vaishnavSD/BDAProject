@@ -265,6 +265,54 @@ services:
       retries: 5
 
   # ─────────────────────────────────────────────────────────────
+  # FASTAPI — REST + WebSocket API server
+  # Access: http://localhost:8000
+  # Docs:   http://localhost:8000/docs
+  # ─────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    container_name: inventory_api
+    hostname: api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: smart_inventory
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+    volumes:
+      - ../api:/app/api
+    networks:
+      - inventory_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────────────
+  # REACT DASHBOARD — served via nginx
+  # Access: http://localhost:3000
+  # ─────────────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: Dockerfile
+    container_name: inventory_dashboard
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+    networks:
+      - inventory_net
+
+  # ─────────────────────────────────────────────────────────────
   # AIRFLOW INIT — creates DB tables and admin user (runs once)
   # ─────────────────────────────────────────────────────────────
   airflow-init:
